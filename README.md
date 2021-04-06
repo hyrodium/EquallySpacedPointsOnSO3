@@ -1,0 +1,1 @@
+# EquallySpacedPointsOnSO3
