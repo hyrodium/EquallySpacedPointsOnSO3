@@ -2,6 +2,7 @@ using Rotations
 using LinearAlgebra
 using Statistics
 using StaticArrays
+using Random
 
 using Plots
 using GeometryBasics
@@ -10,14 +11,9 @@ plotly()
 
 ElType = RotMatrix3{Float64}
 
-function angle(R::MRP)
-    d = norm(R)
-    x = min(d,1/d)
-    return 4*atan(x)*sign(t)
-end
-
 function distance(R1::ElType, R2::ElType)
-    return angle(MRP(R1/R2))
+    # return angle(MRP(R1/R2))
+    return rotation_angle(R1/R2)
 end
 
 function rand_SO3()
@@ -30,6 +26,18 @@ end
 
 function energy(p1::ElType, p2::ElType)
     return 1/distance(p1,p2)
+end
+
+function energy(ps::Vector{ElType}, i::Integer)
+    l = length(ps)
+    E = 0.0
+    for j in 1:l
+        if i==j
+            continue
+        end
+        E += energy(ps[i],ps[j])
+    end
+    return E
 end
 
 function energy(ps::Vector{ElType})
@@ -52,10 +60,10 @@ end
 
 function update(ps::Vector{ElType})
     i = rand(1:length(ps))
-    E_old = energy(ps)
+    E_old = energy(ps,i)
     ps′ = copy(ps)
     ps′[i] = update(ps′[i])
-    E_new = energy(ps′)
+    E_new = energy(ps′,i)
     if E_new < E_old
         return ps′
     else
@@ -63,26 +71,35 @@ function update(ps::Vector{ElType})
     end
 end
 
+
+Random.seed!(42)
 # generate initial points
-ps = rand_SO3(2)
-ps = rand_SO3(12)
+# ps = rand_SO3(2)
+# ps = rand_SO3(12)
 ps = rand_SO3(24)
-ps = rand_SO3(60)
+# ps = rand_SO3(60)
 
 # minimize energy
-for i in 1:100000
+for i in 1:1000000
     ps = update(ps)
 end
 energy(ps)
+
+# check angles between rotations
+[rad2deg(rotation_angle(R1/R2)) for R1 in ps, R2 in ps]
+
+[rad2deg(rotation_angle(R1/R2)) for R1 in qs, R2 in qs]
 
 # set origin
 ps = [p/ps[1] for p in ps]
 
 # check group structure
-i = 2
+i = 4
 ps[i]^2
 ps[i]^3
 ps[i]^4
+
+energy(ps)
 
 # to compare with polyhedral group
 M1 = [1 0 0;0 1 0;0 0 1]
@@ -99,3 +116,7 @@ M9 = [0 0 1;1 0 0;0 1 0]
 M10 = [0 0 1;-1 0 0;0 -1 0]
 M11 = [0 0 -1;1 0 0;0 -1 0]
 M12 = [0 0 -1;-1 0 0;0 1 0]
+
+qs = RotMatrix3{Float64}[M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12]
+energy(qs)
+
